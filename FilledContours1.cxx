@@ -27,38 +27,16 @@
 #include <sstream>
 #include <iomanip>
 
+// Include our color utilities
+#include "ColorUtils.h"
+
 // This program loads JSON data with null values and creates filled contours
 // The null value boundaries are used as masks for contour lines and filled contours
 // Exports the results as GeoJSON files without visualization
 
-// Function to convert hex color to RGB
-
-// 原始的demo 加载json文件 然后导出成 geojson 格式的数据    新增输入的参数 colorScale的参数 用于设置颜色  (修改了colorScale的参数的格式 ：格式如colorScale_1.json)
-// 去掉了可视化显示的代码 只保留了导出geojson的功能
-void hexToRGB(const std::string& hexColor, double rgb[3]) {
-    // Remove # if present
-    std::string hex = hexColor;
-    if (hex[0] == '#') {
-        hex = hex.substr(1);
-    }
-    
-    // Convert hex to RGB
-    int r, g, b;
-    std::stringstream ss;
-    ss << std::hex << hex.substr(0, 2);
-    ss >> r;
-    ss.clear();
-    ss << std::hex << hex.substr(2, 2);
-    ss >> g;
-    ss.clear();
-    ss << std::hex << hex.substr(4, 2);
-    ss >> b;
-    
-    // Normalize to 0-1 range
-    rgb[0] = r / 255.0;
-    rgb[1] = g / 255.0;
-    rgb[2] = b / 255.0;
-}
+// Forward declarations
+void ExportContoursToGeoJSON(vtkPolyData* contours, const std::string& filename, double zMin, double zMax);
+void ExportFilledContoursToGeoJSON(vtkPolyData* filledContours, const std::string& filename, double zMin, double zMax);
 
 // Function to export contour lines as GeoJSON
 void ExportContoursToGeoJSON(vtkPolyData* contours, const std::string& filename, double zMin, double zMax) {

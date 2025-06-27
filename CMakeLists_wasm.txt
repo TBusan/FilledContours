@@ -1,9 +1,71 @@
-cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.12)
 
 # 注意：此CMakeLists文件应该通过emcmake调用
 # 但不再检查EMSCRIPTEN变量，因为emcmake会以其他方式设置工具链
 
-project(FilledContours_wasm)
+project(FilledContours)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Emscripten specific settings
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s WASM=1")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap'] -s EXPORT_NAME=FilledContoursModule -s MODULARIZE=1 -s EXPORT_ES6=0 -s USE_ES6_IMPORT_META=0 -s ENVIRONMENT='web'")
+
+# Allow file operations for loading JSON files
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s FILESYSTEM=1")
+
+# Export the necessary HTML file
+set(CMAKE_EXECUTABLE_SUFFIX ".html")
+
+# Copy our custom HTML template
+configure_file(${CMAKE_SOURCE_DIR}/FilledContours1.html ${CMAKE_BINARY_DIR}/FilledContours1.html COPYONLY)
+
+# Find VTK
+find_package(VTK REQUIRED)
+message(STATUS "Found VTK version: ${VTK_VERSION}")
+
+# Find jsoncpp (usually included with VTK)
+find_package(jsoncpp QUIET)
+if(NOT jsoncpp_FOUND)
+  message(STATUS "Using VTK bundled jsoncpp")
+endif()
+
+# Include directories - using SYSTEM to avoid warnings from third-party headers
+include_directories(SYSTEM ${VTK_INCLUDE_DIRS})
+
+# Headers
+set(HEADERS
+    ColorUtils.h
+)
+
+# Sources
+set(SOURCES 
+    FilledContours1.cxx
+)
+
+# Create the executable for WebAssembly
+add_executable(FilledContours1 ${SOURCES} ${HEADERS})
+target_link_libraries(FilledContours1 ${VTK_LIBRARIES})
+
+# VTK module initialization
+if(VTK_VERSION VERSION_GREATER_EQUAL "8.90.0")
+  vtk_module_autoinit(
+    TARGETS FilledContours1
+    MODULES ${VTK_LIBRARIES}
+  )
+endif()
+
+# Installation
+install(TARGETS FilledContours1
+    RUNTIME DESTINATION bin
+)
+
+# Copy HTML to bin directory
+install(FILES ${CMAKE_BINARY_DIR}/FilledContours1.html
+    DESTINATION bin
+)
 
 # 检查是否使用了正确的工具链文件
 if(NOT CMAKE_TOOLCHAIN_FILE MATCHES "Emscripten.cmake")
@@ -16,7 +78,6 @@ if(CMAKE_MAKE_PROGRAM STREQUAL "CMAKE_MAKE_PROGRAM-NOTFOUND")
 endif()
 
 # Set Emscripten specific flags
-set(CMAKE_EXECUTABLE_SUFFIX ".html")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 # Common Emscripten compiler and linker flags
@@ -46,61 +107,8 @@ set(EMSCRIPTEN_LINK_FLAGS
 # Precompiler definitions
 add_definitions(-DVTK_OPENGL_HAS_OSMESA -DVTK_OPENGL_HAS_EGL)
 
-# Set up for VTK
-# 提示用户正确设置VTK_DIR路径
-message(STATUS "Looking for VTK at D:/VTK-emscripten/lib/cmake/vtk-9.2")
-set(VTK_DIR "D:/VTK-emscripten/lib/cmake/vtk-9.2" CACHE PATH "Path to Emscripten-built VTK")
-
-# 列出VTK所需的组件
-set(VTK_COMPONENTS 
-  CommonColor
-  CommonCore
-  CommonDataModel
-  FiltersCore
-  FiltersGeneral
-  FiltersGeometry
-  FiltersModeling
-  FiltersPoints
-  FiltersSources
-  IOXML
-  InteractionStyle
-  RenderingCore
-  RenderingOpenGL2
-  jsoncpp
-)
-
-# 尝试查找VTK
-find_package(VTK QUIET COMPONENTS ${VTK_COMPONENTS})
-
-if (NOT VTK_FOUND)
-  message(FATAL_ERROR "无法找到VTK库。请确保已使用Emscripten编译VTK，并将VTK_DIR设置为正确的路径。当前VTK_DIR=${VTK_DIR}")
-endif()
-
-# 显示找到的VTK库信息
-message(STATUS "Found VTK version: ${VTK_VERSION}")
-message(STATUS "VTK include dirs: ${VTK_INCLUDE_DIRS}")
-message(STATUS "VTK libraries: ${VTK_LIBRARIES}")
-
-# 添加可执行文件
-add_executable(FilledContours_wasm FilledContours1.cxx)
-target_link_libraries(FilledContours_wasm PRIVATE ${VTK_LIBRARIES})
-
-# Set compile flags
-string(REPLACE ";" " " EMSCRIPTEN_COMPILE_FLAGS_STR "${EMSCRIPTEN_COMPILE_FLAGS}")
-set_target_properties(FilledContours_wasm PROPERTIES COMPILE_FLAGS "${EMSCRIPTEN_COMPILE_FLAGS_STR}")
-
-# Set link flags
-string(REPLACE ";" " " EMSCRIPTEN_LINK_FLAGS_STR "${EMSCRIPTEN_LINK_FLAGS}")
-set_target_properties(FilledContours_wasm PROPERTIES LINK_FLAGS "${EMSCRIPTEN_LINK_FLAGS_STR}")
-
 # Set include directories
-target_include_directories(FilledContours_wasm PRIVATE ${VTK_INCLUDE_DIRS})
-
-# VTK module initialization
-vtk_module_autoinit(
-  TARGETS FilledContours_wasm
-  MODULES ${VTK_LIBRARIES}
-)
+target_include_directories(FilledContours1 PRIVATE ${VTK_INCLUDE_DIRS})
 
 # Copy additional files for web deployment
 message(STATUS "Copying web files to output directory: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
@@ -111,4 +119,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/web/style.css
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/web/filledcontours-api.js
                ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/filledcontours-api.js COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/web/example.html
-               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/example.html COPYONLY) 
+               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/example.html COPYONLY)
+
+# Check if we're actually using the Emscripten toolchain
+if(NOT EMSCRIPTEN)
+  message(FATAL_ERROR "This configuration file is meant to be used with Emscripten. Please use emcmake to configure the build.")
+endif() 

@@ -1,7 +1,7 @@
 @echo off
-rem Script to build FilledContours as WebAssembly on Windows
+rem Script to build FilledContours1 as WebAssembly on Windows
 
-echo ===== FilledContours WebAssembly构建脚本 =====
+echo ===== FilledContours1 WebAssembly构建脚本 =====
 echo.
 
 rem 设置Python路径
@@ -54,7 +54,7 @@ echo.
 
 rem 配置CMake项目
 echo 配置CMake项目...
-echo emcmake cmake .. -G "MinGW Makefiles" -DCMAKE_MAKE_PROGRAM=mingw32-make -DCMAKE_BUILD_TYPE=Release -DCMAKE_CROSSCOMPILING_EMULATOR=node -DCMAKE_INSTALL_PREFIX=./install -DCMAKE_VERBOSE_MAKEFILE=ON -C ../CMakeLists_wasm.txt
+echo emcmake cmake .. -G "MinGW Makefiles" -DCMAKE_MAKE_PROGRAM=mingw32-make -DCMAKE_BUILD_TYPE=Release -C ../CMakeLists_wasm.txt
 call emcmake cmake .. -G "MinGW Makefiles" ^
     -DCMAKE_MAKE_PROGRAM=mingw32-make ^
     -DCMAKE_BUILD_TYPE=Release ^
@@ -71,7 +71,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo.
 
 rem 编译项目
-echo 编译FilledContours WebAssembly...
+echo 编译FilledContours1 WebAssembly...
 call emmake mingw32-make -j4
 
 if %ERRORLEVEL% NEQ 0 (
@@ -79,13 +79,17 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
+rem 安装到指定目录
+echo 安装FilledContours1...
+call emmake mingw32-make install
+
 echo.
 echo ===== 构建成功! =====
-echo 输出文件在 build-wasm\bin\ 目录中
+echo 输出文件在 build-wasm\install\bin\ 目录中
 echo.
 echo 启动本地服务器:
-echo cd build-wasm\bin ^&^& python -m http.server 8000
-echo 然后访问浏览器: http://localhost:8000/
+echo cd build-wasm\install\bin ^&^& python -m http.server 8000
+echo 然后访问浏览器: http://localhost:8000/FilledContours1.html
 echo.
 
 cd .. 
