@@ -1,0 +1,6 @@
+build/
+build-geojson/
+build-simple/
+build-simple-fixed/
+build-wasm/
+web/

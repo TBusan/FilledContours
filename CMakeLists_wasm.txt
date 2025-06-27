@@ -1,0 +1,114 @@
+cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
+
+# 注意：此CMakeLists文件应该通过emcmake调用
+# 但不再检查EMSCRIPTEN变量，因为emcmake会以其他方式设置工具链
+
+project(FilledContours_wasm)
+
+# 检查是否使用了正确的工具链文件
+if(NOT CMAKE_TOOLCHAIN_FILE MATCHES "Emscripten.cmake")
+  message(STATUS "提示: 请确保使用emcmake调用此文件，当前CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
+endif()
+
+# 确保MinGW make被正确识别
+if(CMAKE_MAKE_PROGRAM STREQUAL "CMAKE_MAKE_PROGRAM-NOTFOUND")
+  set(CMAKE_MAKE_PROGRAM "mingw32-make" CACHE FILEPATH "Path to make executable")
+endif()
+
+# Set Emscripten specific flags
+set(CMAKE_EXECUTABLE_SUFFIX ".html")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
+# Common Emscripten compiler and linker flags
+set(EMSCRIPTEN_COMPILE_FLAGS
+  "-s USE_WEBGL2=1"
+  "-s FULL_ES3=1"
+  "-s WASM=1"
+  "-s ALLOW_MEMORY_GROWTH=1"
+  "-s EXPORTED_RUNTIME_METHODS=['ccall','cwrap']"
+  "-s EXPORT_ES6=1"
+  "-s MODULARIZE=1"
+  "-s EXPORT_NAME=FilledContours"
+  "-s USE_PTHREADS=0"
+  "-O3"
+)
+
+# Link flags for the executable
+set(EMSCRIPTEN_LINK_FLAGS
+  ${EMSCRIPTEN_COMPILE_FLAGS}
+  "-s INITIAL_MEMORY=256MB"
+  "--bind"
+  "--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/testData.json@/testData.json"
+  "--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/colorScale.json@/colorScale.json"
+  "--shell-file ${CMAKE_CURRENT_SOURCE_DIR}/shell.html"
+)
+
+# Precompiler definitions
+add_definitions(-DVTK_OPENGL_HAS_OSMESA -DVTK_OPENGL_HAS_EGL)
+
+# Set up for VTK
+# 提示用户正确设置VTK_DIR路径
+message(STATUS "Looking for VTK at D:/VTK-emscripten/lib/cmake/vtk-9.2")
+set(VTK_DIR "D:/VTK-emscripten/lib/cmake/vtk-9.2" CACHE PATH "Path to Emscripten-built VTK")
+
+# 列出VTK所需的组件
+set(VTK_COMPONENTS 
+  CommonColor
+  CommonCore
+  CommonDataModel
+  FiltersCore
+  FiltersGeneral
+  FiltersGeometry
+  FiltersModeling
+  FiltersPoints
+  FiltersSources
+  IOXML
+  InteractionStyle
+  RenderingCore
+  RenderingOpenGL2
+  jsoncpp
+)
+
+# 尝试查找VTK
+find_package(VTK QUIET COMPONENTS ${VTK_COMPONENTS})
+
+if (NOT VTK_FOUND)
+  message(FATAL_ERROR "无法找到VTK库。请确保已使用Emscripten编译VTK，并将VTK_DIR设置为正确的路径。当前VTK_DIR=${VTK_DIR}")
+endif()
+
+# 显示找到的VTK库信息
+message(STATUS "Found VTK version: ${VTK_VERSION}")
+message(STATUS "VTK include dirs: ${VTK_INCLUDE_DIRS}")
+message(STATUS "VTK libraries: ${VTK_LIBRARIES}")
+
+# 添加可执行文件
+add_executable(FilledContours_wasm FilledContours1.cxx)
+target_link_libraries(FilledContours_wasm PRIVATE ${VTK_LIBRARIES})
+
+# Set compile flags
+string(REPLACE ";" " " EMSCRIPTEN_COMPILE_FLAGS_STR "${EMSCRIPTEN_COMPILE_FLAGS}")
+set_target_properties(FilledContours_wasm PROPERTIES COMPILE_FLAGS "${EMSCRIPTEN_COMPILE_FLAGS_STR}")
+
+# Set link flags
+string(REPLACE ";" " " EMSCRIPTEN_LINK_FLAGS_STR "${EMSCRIPTEN_LINK_FLAGS}")
+set_target_properties(FilledContours_wasm PROPERTIES LINK_FLAGS "${EMSCRIPTEN_LINK_FLAGS_STR}")
+
+# Set include directories
+target_include_directories(FilledContours_wasm PRIVATE ${VTK_INCLUDE_DIRS})
+
+# VTK module initialization
+vtk_module_autoinit(
+  TARGETS FilledContours_wasm
+  MODULES ${VTK_LIBRARIES}
+)
+
+# Copy additional files for web deployment
+message(STATUS "Copying web files to output directory: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/web/index.html
+               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/web/style.css
+               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/style.css COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/web/filledcontours-api.js
+               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/filledcontours-api.js COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/web/example.html
+               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/example.html COPYONLY) 

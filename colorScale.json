@@ -1,0 +1,21 @@
+{"colorScale":[
+    { "level": -20.0, "lineType": "solid", "lineColor": "#000000", "color": "#FF0000" },
+    { "level": -10.0, "lineType": "solid", "lineColor": "#000000", "color": "#E5491A" },
+    { "level": 0.0, "lineType": "solid", "lineColor": "#000000", "color": "#D4E51A" },
+    { "level": 10, "lineType": "solid", "lineColor": "#000000", "color": "#ff2200" },
+    { "level": 20, "lineType": "solid", "lineColor": "#000000", "color": "#ff4400" },
+    { "level": 30, "lineType": "solid", "lineColor": "#000000", "color": "#ff6600" },
+    { "level": 40, "lineType": "solid", "lineColor": "#000000", "color": "#ff8800" },
+    { "level": 50, "lineType": "solid", "lineColor": "#000000", "color": "#ffaa00" },
+    { "level": 60, "lineType": "solid", "lineColor": "#000000", "color": "#ffcc00" },
+    { "level": 70, "lineType": "solid", "lineColor": "#000000", "color": "#ffee00" },
+    { "level": 80, "lineType": "solid", "lineColor": "#000000", "color": "#e1fa1f" },
+    { "level": 90, "lineType": "solid", "lineColor": "#000000", "color": "#a5f05c" },
+    { "level": 100, "lineType": "solid", "lineColor": "#000000", "color": "#6ae699" },
+    { "level": 110, "lineType": "solid", "lineColor": "#000000", "color": "#2edcd6" },
+    { "level": 120, "lineType": "solid", "lineColor": "#000000", "color": "#35aeea" },
+    { "level": 130, "lineType": "solid", "lineColor": "#000000", "color": "#5174f1" },
+    { "level": 140, "lineType": "solid", "lineColor": "#000000", "color": "#6e3af8" },
+    { "level": 150, "lineType": "solid", "lineColor": "#000000", "color": "#8B00FF" }
+]
+}
